@@ -1,9 +1,9 @@
 from typing import Optional
 from uuid import UUID
-from datetime import date
+from datetime import date,datetime
 
 #pydantic
-from pydantic import BaseModel,EmailStr,Field
+from pydantic import BaseModel,EmailStr,Field, fields
 
 #fastapi
 from fastapi import FastAPI
@@ -24,7 +24,7 @@ class UserLogin(UserBase):
     max_length=64
     )
 
-class user(UserBase):
+class User(UserBase):
     
     first_name:str=Field(
         ...,
@@ -36,9 +36,18 @@ class user(UserBase):
         min_length=1,
         max_length=50
         ),
-    birth_date:Optional[date]=Field(None)    
+    birth_date:Optional[date]=Field(default=None)    
         
-
+class Tweet(BaseModel):
+    Tweet_id: UUID= Field(...)
+    content: str =Field(
+    ...,
+    min_length=1,
+    max_length=256
+    )
+    created_at:datetime = Field(default=datetime.now())
+    updated_at:Optional[datetime]= Field(default=None)
+    by: User = Field(...)
 
 
 class tweet(BaseModel):
