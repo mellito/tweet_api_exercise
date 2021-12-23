@@ -1,127 +1,231 @@
-from typing import Optional,List
+# Python
 from uuid import UUID
-from datetime import date,datetime
+from datetime import date
+from datetime import datetime
+from typing import Dict
+from typing import List
+from typing import Optional
 
-#pydantic
-from pydantic import BaseModel,EmailStr,Field
+# Pydantic
+from pydantic import BaseModel
+from pydantic import EmailStr
+from pydantic import Field
 
-#fastapi
-from fastapi import FastAPI,status
+# FastAPI
+from fastapi import FastAPI
+from fastapi import status
+from fastapi import Path
 
-app= FastAPI()
+
+# Initialize the app
+app = FastAPI()
+
+
+# ============================================================
+# Define models
+# ============================================================
 
 class UserBase(BaseModel):
 
-    user_id: UUID=Field(...)
-    email:EmailStr=Field(...) 
+    id: UUID = Field(...,)
+
+    email: EmailStr = Field(...,)
+
+
+class User(UserBase):
+
+    first_name: str = Field(...,
+                            title='First name',
+                            min_length=2,
+                            max_length=50,
+                            example='John',)
+
+    last_name: str = Field(...,
+                           title='Last name',
+                           min_length=2,
+                           max_length=50,
+                           example='Doe',)
+
+    birth_date: Optional[date] = Field(default=None,
+                                       title='Birth date',
+                                       example='2021-01-01',)
 
 
 class UserLogin(UserBase):
 
-    password: str= Field(
-    ...,
-    min_length=8,
-    max_length=64
-    )
+    password: str = Field(...,
+                          min_length=8,
+                          max_length=64,
+                          example='password',)
 
-class User(UserBase):
-    
-    first_name:str=Field(
-        ...,
-        min_length=1,
-        max_length=50
-        ),
-    last_name:str=Field(
-        ...,
-        min_length=1,
-        max_length=50
-        ),
-    birth_date:Optional[date]=Field(default=None)    
-        
+
 class Tweet(BaseModel):
-    Tweet_id: UUID= Field(...)
-    content: str =Field(
-    ...,
-    min_length=1,
-    max_length=256
-    )
-    created_at:datetime = Field(default=datetime.now())
-    updated_at:Optional[datetime]= Field(default=None)
-    by: User = Field(...)
+
+    id: UUID = Field(...)
+
+    content: str = Field(...,
+                         min_length=1,
+                         max_length=256,)
+
+    created_at: datetime = Field(default=datetime.now(),
+                                title='Creation date',
+                                example='2020-01-01T00:00:00Z',)
+
+    updated_at: Optional[datetime] = Field(default=None,
+                                           title='Last update date',
+                                           example='2020-01-01T00:00:00Z',)
+
+    created_by: User = Field(...,
+                             title='User who created the tweet',)
 
 
-class tweet(BaseModel):
-    pass
+# ============================================================
+# Path operations
+# ============================================================
 
-# path operation
 
-@app.get(
-    path="/"
-    )
-def home():
-    return {"Twitter API":"working!"}
+@app.get('/',
+         summary='Home',
+         status_code=status.HTTP_200_OK)
+def home() -> Dict[str, str]:
+    """Home route.
 
-## users
-@app.post(
-    path="/signup", 
-    response_model=User,
-    status_code=status.HTTP_201_CREATED,
-    summary="Register a user",
-    tags=["User"]
-)
-def singup():
-    pass
+    Returns a message indicating that the app is running.
+    """
 
-@app.post(
-    path="/Login", 
-    response_model=User,
-    status_code=status.HTTP_200_OK,
-    summary="Login a user",
-    tags=["User"]
-)
-def login():
-    pass
+    return {
+        'message': 'Twitter API is working!',
+    }
 
-@app.get(
-    path="/users", 
-    response_model=List[User],
-    status_code=status.HTTP_200_OK,
-    summary="Show all user",
-    tags=["User"]
-)
-def show_all_user():
-    pass
 
-@app.get(
-    path="/users/{user_id}", 
-    response_model=User,
-    status_code=status.HTTP_200_OK,
-    summary="show a user",
-    tags=["User"]
-)
-def show_a_user():
-    pass
-
-@app.delete(
-    path="/users/{user_id}/delete", 
-    response_model=User,
-    status_code=status.HTTP_200_OK,
-    summary="Delete a user",
-    tags=["User"]
-)
-def delete_a_user():
-    pass
-
-@app.put(
-    path="/users/{user_id}/update", 
-    response_model=User,
-    status_code=status.HTTP_200_OK,
-    summary="update a user",
-    tags=["User"]
-)
-def update_a_user():
+## Auth
+@app.post('/auth/signup',
+          response_model=UserLogin,
+          status_code=status.HTTP_201_CREATED,
+          summary='Sign up',
+          tags=['Auth', 'Users'])
+def signup(user: User) -> User:
     pass
 
 
-## tweets
+@app.post('/auth/login',
+          response_model=UserLogin,
+          status_code=status.HTTP_200_OK,
+          summary='Login',
+          tags=['Auth', 'Users'])
+def login(user: User) -> User:
+    pass
 
+
+## Users
+
+
+@app.get('/users/',
+         response_model=List[User],
+         status_code=status.HTTP_200_OK,
+         summary='Get all users',
+         tags=['Users'])
+def list_users() -> List[User]:
+    pass
+
+
+@app.get('/users/{id}',
+         response_model=User,
+         status_code=status.HTTP_200_OK,
+         summary='Get a user',
+         tags=['Users'])
+def retrieve_user(
+    id: int = Path(...,
+                   gt=0,
+                   title='User ID',
+                   description='The ID of the user to retrieve',
+                   example=1,),
+) -> User:
+    pass
+
+
+@app.put('/users/{id}',
+         response_model=User,
+         status_code=status.HTTP_200_OK,
+         summary='Update user',
+         tags=['Users'])
+def update_user(
+    id: int = Path(...,
+                   gt=0,
+                   title='User ID',
+                   description='The ID of the user to update',
+                   example=1,),
+) -> User:
+    pass
+
+
+@app.delete('/users/{id}',
+            status_code=status.HTTP_204_NO_CONTENT,
+            summary='Delete user',
+            tags=['Users'])
+def delete_user(
+    id: int = Path(...,
+                   gt=0,
+                   title='User ID',
+                   description='The ID of the user to update',
+                   example=1,),
+) -> User:
+    pass
+
+
+## Tweets
+
+
+@app.get('/tweets/',
+         response_model=List[Tweet],
+         status_code=status.HTTP_200_OK,
+         summary='Get all tweets',
+         tags=['Tweets'])
+def list_tweets() -> List[Tweet]:
+    pass
+
+
+@app.get('/tweets/{id}',
+         response_model=Tweet,
+         status_code=status.HTTP_200_OK,
+         summary='Get a tweet',
+         tags=['Tweets'])
+def retrieve_tweet(
+    id: int = Path(...,
+                   gt=0,
+                   title='Tweet ID',
+                   description='The ID of the tweet to retrieve',
+                   example=1,),
+) -> Tweet:
+    pass
+
+
+@app.put('/tweets/{id}',
+         response_model=Tweet,
+         status_code=status.HTTP_200_OK,
+         summary='Update tweet',
+         tags=['Tweets'])
+def update_tweet(
+    id: int = Path(...,
+                   gt=0,
+                   title='Tweet ID',
+                   description='The ID of the tweet to update',
+                   example=1,),
+) -> Tweet:
+    pass
+
+
+@app.delete('/tweets/{id}',
+            status_code=status.HTTP_204_NO_CONTENT,
+            summary='Delete tweet',
+            tags=['Tweets'])
+def delete_tweet(
+    id: int = Path(...,
+                   gt=0,
+                   title='Tweet ID',
+                   description='The ID of the tweet to update',
+                   example=1,),
+) -> Tweet:
+    pass
+
+    pass
